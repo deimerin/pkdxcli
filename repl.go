@@ -17,11 +17,12 @@ type config struct {
 type cliCommand struct {
 	name        string
 	description string
-	callback    func(*config) error
+	callback    func(*config, []string) error
 }
 
 var commands map[string]cliCommand
 var cfg config
+var baseLocationAreaURL string = "https://pokeapi.co/api/v2/location-area/"
 
 func init() {
 	commands = map[string]cliCommand{
@@ -45,10 +46,15 @@ func init() {
 			description: "Print previous locations",
 			callback:    commandMapB,
 		},
+		"explore": {
+			name:        "explore",
+			description: "explore the area, etc",
+			callback:    commandExplore,
+		},
 	}
-	url := "https://pokeapi.co/api/v2/location-area/"
+	//url := "https://pokeapi.co/api/v2/location-area/"
 	cfg = config{
-		Next:     &url,
+		Next:     &baseLocationAreaURL,
 		Previous: nil,
 	}
 }
@@ -70,7 +76,9 @@ func start() {
 			if len(words) > 0 {
 
 				if command, exists := commands[words[0]]; exists {
-					command.callback(&cfg)
+					if err := command.callback(&cfg, words[1:]); err != nil {
+						fmt.Println("Error:", err)
+					}
 				} else {
 					fmt.Println("Unknown command")
 				}
@@ -82,13 +90,13 @@ func start() {
 	}
 }
 
-func commandExit(cfg *config) error {
+func commandExit(cfg *config, param []string) error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return nil
 }
 
-func commandHelp(cfg *config) error {
+func commandHelp(cfg *config, param []string) error {
 	fmt.Print("Welcome to the Pokedex!\nUsage:\n\n")
 	for _, c := range commands {
 		fmt.Printf("%s: %s\n", c.name, c.description)
@@ -96,7 +104,7 @@ func commandHelp(cfg *config) error {
 	return nil
 }
 
-func commandMap(cfg *config) error {
+func commandMap(cfg *config, param []string) error {
 	locations, next, previous, err := pokeapi.FetchLocations(*cfg.Next)
 
 	if err != nil {
@@ -114,8 +122,8 @@ func commandMap(cfg *config) error {
 
 }
 
-func commandMapB(cfg *config) error {
-	if *cfg.Previous != "" {
+func commandMapB(cfg *config, param []string) error {
+	if cfg.Previous != nil && *cfg.Previous != "" {
 		locations, next, previous, err := pokeapi.FetchLocations(*cfg.Previous)
 
 		if err != nil {
@@ -136,4 +144,32 @@ func commandMapB(cfg *config) error {
 
 	return nil
 
+}
+
+func commandExplore(cfg *config, param []string) error {
+	if len(param) > 0 {
+
+		areaName := strings.Join(param, "-")
+
+		newURL := baseLocationAreaURL + areaName
+
+		pokeList, err := pokeapi.FetchLocationArea(newURL)
+
+		if err != nil {
+			fmt.Println("Something went wrong fetching the area data")
+			return err
+		}
+
+		fmt.Printf("Exploring %s...\n", param[0])
+		fmt.Println("Found Pokemon:")
+		for _, pkm := range pokeList {
+			fmt.Printf(" - %s\n", pkm)
+		}
+	}
+
+	if len(param) == 0 {
+		fmt.Println("You must provide an area name. Example: explore canalave-city-area ")
+	}
+
+	return nil
 }
