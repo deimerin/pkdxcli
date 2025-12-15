@@ -23,6 +23,7 @@ type cliCommand struct {
 var commands map[string]cliCommand
 var cfg config
 var baseLocationAreaURL string = "https://pokeapi.co/api/v2/location-area/"
+var pokedex map[string]pokeapi.Pokemon
 
 func init() {
 	commands = map[string]cliCommand{
@@ -51,8 +52,15 @@ func init() {
 			description: "explore the area, etc",
 			callback:    commandExplore,
 		},
+		"catch": {
+			name:        "catch",
+			description: "try to catch a Pokemon",
+			callback:    commandCatch,
+		},
 	}
-	//url := "https://pokeapi.co/api/v2/location-area/"
+
+	pokedex = make(map[string]pokeapi.Pokemon)
+
 	cfg = config{
 		Next:     &baseLocationAreaURL,
 		Previous: nil,
@@ -171,5 +179,35 @@ func commandExplore(cfg *config, param []string) error {
 		fmt.Println("You must provide an area name. Example: explore canalave-city-area ")
 	}
 
+	return nil
+}
+
+func commandCatch(cfg *config, param []string) error {
+
+	if len(param) == 0 {
+		fmt.Println("Provide a valid pokemon name. Example: catch pikachu")
+		return nil
+	}
+
+	if len(param) > 0 {
+
+		wildPokemon := param[0]
+
+		pokemon, err := pokeapi.GetPokemon(wildPokemon)
+
+		if err != nil {
+			fmt.Println("Invalid pokemon name/id")
+			return err
+		}
+
+		fmt.Printf("Throwing a Pokeball at %s...\n", wildPokemon)
+
+		if pokemon.Catch() {
+			fmt.Printf("%s was caught!\n", wildPokemon)
+			pokedex[wildPokemon] = pokemon
+		} else {
+			fmt.Printf("%s escaped!\n", wildPokemon)
+		}
+	}
 	return nil
 }
