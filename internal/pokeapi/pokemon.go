@@ -52,7 +52,20 @@ func (p Pokemon) Catch() bool {
 
 func GetPokemon(name string) (Pokemon, error) {
 
+	// Cache check
+
 	var pokemon Pokemon
+
+	if data, ok := cache.Get(name); ok {
+		if err := json.Unmarshal(data, &pokemon); err != nil {
+			return Pokemon{}, err
+		}
+
+		// fmt.Printf("\n\n CACHE WAS USED \n\n\n")
+
+		return pokemon, nil
+
+	}
 
 	res, err := http.Get(basePokemonURL + name)
 	if err != nil {
@@ -64,6 +77,9 @@ func GetPokemon(name string) (Pokemon, error) {
 	if err != nil {
 		return Pokemon{}, err
 	}
+
+	// Add pokemon to cache
+	cache.Add(name, body)
 
 	// Unmarshal json
 	if err = json.Unmarshal(body, &pokemon); err != nil {

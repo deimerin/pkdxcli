@@ -57,6 +57,16 @@ func init() {
 			description: "try to catch a Pokemon",
 			callback:    commandCatch,
 		},
+		"inspect": {
+			name:        "inspect",
+			description: "show data of caught pokemon",
+			callback:    commandInspect,
+		},
+		"pokedex": {
+			name:        "pokedex",
+			description: "show captured pokemon",
+			callback:    commandPokedex,
+		},
 	}
 
 	pokedex = make(map[string]pokeapi.Pokemon)
@@ -155,6 +165,12 @@ func commandMapB(cfg *config, param []string) error {
 }
 
 func commandExplore(cfg *config, param []string) error {
+
+	if len(param) == 0 {
+		fmt.Println("You must provide an area name. Example: explore canalave-city-area ")
+		return nil
+	}
+
 	if len(param) > 0 {
 
 		areaName := strings.Join(param, "-")
@@ -173,10 +189,6 @@ func commandExplore(cfg *config, param []string) error {
 		for _, pkm := range pokeList {
 			fmt.Printf(" - %s\n", pkm)
 		}
-	}
-
-	if len(param) == 0 {
-		fmt.Println("You must provide an area name. Example: explore canalave-city-area ")
 	}
 
 	return nil
@@ -209,5 +221,51 @@ func commandCatch(cfg *config, param []string) error {
 			fmt.Printf("%s escaped!\n", wildPokemon)
 		}
 	}
+
 	return nil
+}
+
+func commandInspect(cfg *config, param []string) error {
+
+	if len(param) == 0 {
+		fmt.Println("Provide a valid pokemon name. Example: inspect pikachu")
+		return nil
+	}
+
+	pokeName := param[0]
+
+	p, ok := pokedex[pokeName]
+
+	if !ok {
+		fmt.Println("you have not caught that pokemon")
+		return nil
+	}
+
+	fmt.Printf("Name: %s\n", p.Name)
+	fmt.Printf("Height: %d\n", p.Height)
+	fmt.Printf("Weight: %d\n", p.Weight)
+
+	fmt.Println("Stats: ")
+
+	for _, stat := range p.Stats {
+		fmt.Printf("  - %s: %d\n", stat.Stat.Name, stat.BaseStat)
+	}
+
+	fmt.Println("Types: ")
+
+	for _, t := range p.Types {
+		fmt.Printf("  - %s\n", t.Type.Name)
+	}
+
+	return nil
+}
+
+func commandPokedex(cfg *config, param []string) error {
+
+	for _, p := range pokedex {
+		fmt.Printf("  - %s\n", p.Name)
+	}
+
+	return nil
+
 }
